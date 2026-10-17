@@ -54,7 +54,7 @@ class ReasonerContractTest {
     var r = new JsonReasoner((s, i, t) -> "{\"approved\":\"yes\",\"feedback\":\"OK\"}");
     assertThrows(
         IllegalArgumentException.class,
-        () -> r.review(agent, "A", List.of(), "Summary", Duration.ofSeconds(1)));
+        () -> r.review(agent, "A", snapshot, List.of(), "Summary", Duration.ofSeconds(1)));
   }
 
   @Test
@@ -70,5 +70,23 @@ class ReasonerContractTest {
     r.summarize(agent, "A", snapshot, List.of(), "prior", "fix", Duration.ofSeconds(1));
     assertTrue(inputs.getFirst().contains("untrustedFiles"));
     assertTrue(inputs.getFirst().contains("reviewFeedback"));
+  }
+
+  @Test
+  void reviewerReceivesSourceEvidenceAndEvaluatesReportAccuracy() throws Exception {
+    var inputs = new ArrayList<String>();
+    var r =
+        new JsonReasoner(
+            (system, input, timeout) -> {
+              inputs.add(input);
+              return "{\"approved\":true,\"feedback\":\"Relatório sustentado pelas evidências\"}";
+            });
+    var result =
+        r.review(agent, "A", snapshot, List.of(), "Observações da amostra", Duration.ofSeconds(1));
+    var payload = new com.fasterxml.jackson.databind.ObjectMapper().readTree(inputs.getFirst());
+    assertTrue(result.approved());
+    assertEquals("REPORT_ACCURACY", payload.path("reviewTarget").asText());
+    assertEquals("Main.java", payload.path("untrustedFiles").path(0).path("path").asText());
+    assertEquals("main", payload.path("untrustedFiles").path(0).path("content").asText());
   }
 }

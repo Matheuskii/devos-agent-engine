@@ -1,4 +1,6 @@
-# Validação executada
+# Validação inicial executada
+
+Este registro corresponde à primeira validação local. A validação posterior com 49 testes e APIs/Qdrant reais está em [CODESPACE-VALIDATION.md](CODESPACE-VALIDATION.md).
 
 Data: 2026-10-16T22:03:14-03:00 (America/Sao_Paulo).
 

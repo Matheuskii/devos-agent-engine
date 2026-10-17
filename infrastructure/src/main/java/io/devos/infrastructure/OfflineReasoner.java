@@ -30,7 +30,12 @@ public final class OfflineReasoner implements PlanningPort, SynthesisPort, Revie
   }
 
   public ReviewDecision review(
-      Agent agent, String objective, List<ToolResult> results, String summary, Duration timeout) {
+      Agent agent,
+      String objective,
+      RepositorySnapshot snapshot,
+      List<ToolResult> results,
+      String summary,
+      Duration timeout) {
     boolean approved =
         !summary.isBlank()
             && results.stream()
@@ -41,7 +46,7 @@ public final class OfflineReasoner implements PlanningPort, SynthesisPort, Revie
         approved,
         approved
             ? "Critérios estruturais atendidos: inventário, verificação e síntese presentes."
-                  + " Revisão local não avalia qualidade semântica."
+                + " Revisão local não avalia qualidade semântica."
             : "Evidências obrigatórias ausentes.");
   }
 }

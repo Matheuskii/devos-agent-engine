@@ -83,7 +83,8 @@ class AnalysisEngineTest {
         engine(
                 planner,
                 writer,
-                (a, o, e, s, t) -> {
+                (a, o, snapshotArg, e, s, t) -> {
+                  assertSame(snapshot, snapshotArg);
                   seen.addAll(e);
                   return new ReviewDecision(true, "Evidence confirmed");
                 })
@@ -108,7 +109,7 @@ class AnalysisEngineTest {
                   feedbacks.add(f);
                   return "Summary";
                 },
-                (a, o, e, s, t) ->
+                (a, o, snapshotArg, e, s, t) ->
                     new ReviewDecision(calls.incrementAndGet() > 1, "Fix unsupported claim"))
             .analyze(Path.of("."), "Analyze");
     assertEquals("COMPLETED", result.status());
@@ -120,7 +121,10 @@ class AnalysisEngineTest {
   @Test
   void permanentRejectionStopsAfterConfiguredLimit() {
     var result =
-        engine(planner, writer, (a, o, e, s, t) -> new ReviewDecision(false, "Unsupported"))
+        engine(
+                planner,
+                writer,
+                (a, o, snapshotArg, e, s, t) -> new ReviewDecision(false, "Unsupported"))
             .analyze(Path.of("."), "Analyze");
     assertEquals("REJECTED", result.status());
     assertEquals(7, result.modelCalls());
@@ -133,7 +137,7 @@ class AnalysisEngineTest {
         engine(
                 (a, o, s, t) -> new Plan(List.of(new PlanStep("one", ToolId.INVENTORY, Set.of()))),
                 writer,
-                (a, o, e, s, t) -> new ReviewDecision(true, "OK"))
+                (a, o, snapshotArg, e, s, t) -> new ReviewDecision(true, "OK"))
             .analyze(Path.of("."), "Analyze");
     assertEquals("FAILED", result.status());
     assertEquals(1, result.modelCalls());
@@ -148,7 +152,7 @@ class AnalysisEngineTest {
                   throw new IllegalStateException("HTTP 429");
                 },
                 writer,
-                (a, o, e, s, t) -> new ReviewDecision(true, "OK"))
+                (a, o, snapshotArg, e, s, t) -> new ReviewDecision(true, "OK"))
             .analyze(Path.of("."), "Analyze");
     assertEquals("FAILED", result.status());
     assertTrue(saved.getFirst().review().contains("429"));
@@ -167,7 +171,7 @@ class AnalysisEngineTest {
           }
         };
     var result =
-        engine(planner, writer, (a, o, e, s, t) -> new ReviewDecision(true, "OK"))
+        engine(planner, writer, (a, o, snapshotArg, e, s, t) -> new ReviewDecision(true, "OK"))
             .analyze(Path.of("."), "Analyze");
     assertEquals("COMPLETED", result.status());
     assertEquals(2, result.notices().size());
@@ -186,7 +190,7 @@ class AnalysisEngineTest {
             stored.incrementAndGet();
           }
         };
-    engine(planner, writer, (a, o, e, s, t) -> new ReviewDecision(false, "Bad"))
+    engine(planner, writer, (a, o, snapshotArg, e, s, t) -> new ReviewDecision(false, "Bad"))
         .analyze(Path.of("."), "Analyze");
     assertEquals(0, stored.get());
   }
@@ -195,7 +199,7 @@ class AnalysisEngineTest {
   void callBudgetPreventsAdditionalProviderRequest() {
     policy = new ExecutionPolicy(6, 3, 2, Duration.ofMinutes(1));
     var result =
-        engine(planner, writer, (a, o, e, s, t) -> new ReviewDecision(false, "Bad"))
+        engine(planner, writer, (a, o, snapshotArg, e, s, t) -> new ReviewDecision(false, "Bad"))
             .analyze(Path.of("."), "Analyze");
     assertEquals("FAILED", result.status());
     assertEquals(3, result.modelCalls());
@@ -219,7 +223,7 @@ class AnalysisEngineTest {
             path -> snapshot,
             planner,
             writer,
-            (a, o, x, s, t) -> new ReviewDecision(true, "OK"),
+            (a, o, snapshotArg, x, s, t) -> new ReviewDecision(true, "OK"),
             List.of(tool(ToolId.INVENTORY), tool(ToolId.QUALITY)),
             r -> {
               throw new IllegalStateException("Disk full");

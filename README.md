@@ -115,7 +115,7 @@ A suíte testa invariantes, ciclos, transições, orçamento, revisão, falhas, 
 
 O workflow em `.github/workflows/ci.yml` repete o build, executa a demonstração e publica JAR, testes e relatório de exemplo como artefatos nos pushes e pull requests do GitHub.
 
-Veja [VALIDATION.md](docs/VALIDATION.md) para o resultado obtido neste ambiente e os testes de serviços reais que ainda precisam ser realizados.
+Veja a [validação inicial](docs/VALIDATION.md) e a [validação posterior no Codespace](docs/CODESPACE-VALIDATION.md), que inclui 49 testes, Gemini, Groq e Qdrant com embeddings reais.
 
 ## Referências técnicas
 

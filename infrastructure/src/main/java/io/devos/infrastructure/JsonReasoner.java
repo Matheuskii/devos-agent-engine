@@ -52,7 +52,7 @@ public final class JsonReasoner implements PlanningPort, SynthesisPort, ReviewPo
             "{steps:[{id:string,tool:INVENTORY|QUALITY,dependencies:[string]}]}. Inclua INVENTORY e"
                 + " QUALITY; no máximo "
                 + agent.policy().maxSteps()
-                + " etapas.",
+                + " etapas. Use INVENTORY e QUALITY uma única vez cada, sem etapas redundantes.",
             timeout);
     if (!node.path("steps").isArray() || node.path("steps").size() > agent.policy().maxSteps())
       throw new IllegalArgumentException("Lista de etapas inválida");
@@ -101,14 +101,35 @@ public final class JsonReasoner implements PlanningPort, SynthesisPort, ReviewPo
   }
 
   public ReviewDecision review(
-      Agent agent, String objective, List<ToolResult> evidence, String summary, Duration timeout) {
+      Agent agent,
+      String objective,
+      RepositorySnapshot snapshot,
+      List<ToolResult> evidence,
+      String summary,
+      Duration timeout) {
     var node =
         call(
             agent,
-            Map.of("objective", objective, "toolEvidence", evidence, "candidateSummary", summary),
-            "{approved:boolean,feedback:string}. Reprove afirmações sem evidência, testes"
-                + " alegadamente executados ou cobertura exagerada. Aprovação significa relatório"
-                + " sustentado, não repositório livre de bugs.",
+            Map.of(
+                "objective",
+                objective,
+                "untrustedFiles",
+                snapshot.files(),
+                "toolEvidence",
+                evidence,
+                "candidateSummary",
+                summary,
+                "samplingNotices",
+                snapshot.notices(),
+                "reviewTarget",
+                "REPORT_ACCURACY"),
+            "{approved:boolean,feedback:string}. Avalie a precisão do RELATÓRIO, não a qualidade do"
+                + " repositório. approved=true quando a síntese descreve corretamente as"
+                + " evidências, mesmo que o projeto tenha problemas. Não reprove por README"
+                + " ausente, falta de testes ou TODO quando relatados corretamente. Se reprovar,"
+                + " aponte a afirmação incorreta e a correção necessária. Reprove afirmações sem"
+                + " evidência, testes alegadamente executados ou cobertura exagerada. Aprovação"
+                + " significa relatório sustentado, não repositório livre de bugs.",
             timeout);
     if (!node.path("approved").isBoolean())
       throw new IllegalArgumentException("Parecer deve conter approved booleano");

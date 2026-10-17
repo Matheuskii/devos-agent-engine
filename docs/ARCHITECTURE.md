@@ -44,7 +44,7 @@ Falhas de configuração anteriores à criação da Task retornam erro da CLI. F
 4. Executor aplica ferramentas em ordem topológica; resultados ficam associados à execução.
 5. Memória fornece histórico do mesmo repositório, quando habilitada.
 6. Executor sintetiza evidências, amostra e objetivo.
-7. Revisor compara síntese com evidências, aprova ou fornece feedback.
+7. Revisor compara síntese com os resultados das ferramentas e a mesma amostra de código usada pelo executor. O alvo é a precisão do relatório, inclusive quando ele identifica problemas no repositório; pode aprovar ou fornecer feedback.
 8. Engine permite apenas o número configurado de novas sínteses. Ferramentas não são repetidas nas revisões.
 9. Resultado aprovado pode alimentar a memória; todos os resultados finais viram JSON e Markdown.
 

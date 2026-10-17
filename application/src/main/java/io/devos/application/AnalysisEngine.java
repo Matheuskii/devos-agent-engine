@@ -119,6 +119,7 @@ public final class AnalysisEngine {
             reviewer.review(
                 agents.get(Role.REVIEWER),
                 objective,
+                snapshot,
                 List.copyOf(results),
                 summary,
                 budget.reserveModelCall());
