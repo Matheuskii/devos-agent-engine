@@ -73,6 +73,7 @@ public final class Main {
       BatchInspectionPort inspection;
       ReportSynthesisPort reportWriter;
       ReportReviewPort reportReviewer;
+      ObservationAuditPort auditor;
       var http = new JsonHttp();
       switch (provider) {
         case "offline" -> {
@@ -84,6 +85,8 @@ public final class Main {
           inspection = detailed;
           reportWriter = detailed;
           reportReviewer = detailed;
+          auditor =
+              (a, c, t) -> new ReviewDecision(true, "Modo offline: sem auditoria semântica de IA.");
         }
         case "gemini", "groq" -> {
           String key = required(env, provider.equals("gemini") ? "GEMINI_API_KEY" : "GROQ_API_KEY"),
@@ -107,6 +110,7 @@ public final class Main {
           inspection = detailed;
           reportWriter = detailed;
           reportReviewer = detailed;
+          auditor = new JsonObservationAuditor(client);
         }
         default -> throw new IllegalArgumentException("Provider deve ser offline, gemini ou groq");
       }
@@ -158,6 +162,7 @@ public final class Main {
                     inspection,
                     reportWriter,
                     reportReviewer,
+                    auditor,
                     tools,
                     storage,
                     memory,

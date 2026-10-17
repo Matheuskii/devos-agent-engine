@@ -10,7 +10,7 @@ A nova versão separa três dimensões: coleta de arquivos elegíveis, conteúdo
 
 - EvidenceReference e AnalysisObservation pertencem ao domínio e não fazem I/O.
 - BatchPlanner, EvidenceValidator, RepositoryCoverage e FullAnalysisEngine pertencem à aplicação.
-- BatchInspectionPort, ReportSynthesisPort e ReportReviewPort são interfaces separadas, definidas pela necessidade do caso de uso.
+- BatchInspectionPort, ObservationAuditPort, ReportSynthesisPort e ReportReviewPort são interfaces separadas, definidas pela necessidade do caso de uso.
 - JsonBatchReasoner e OfflineBatchReasoner são Strategies dos mesmos contratos.
 - DetailedReportRenderer formata dados já estruturados; ele não decide regras do domínio.
 - FileRunRepository persiste históricos e checkpoints com escrita atômica por arquivo.
@@ -27,13 +27,15 @@ A inversão de dependência permanece: aplicação conhece contratos próprios e
 6. Executor analisa cada lote e propõe observações com tipo, prioridade, explicação, impacto, recomendação e evidência.
 7. A aplicação valida cada caminho, intervalo e citação literal contra o lote. Referências sem correspondência são descartadas e registradas.
 8. Salvar checkpoint de progresso, cobertura e observações verificadas.
-9. Consolidar um relatório estruturado usando as observações verificadas de todos os lotes.
-10. Revisor avalia sustentação e clareza do relatório. Revisões refazem a consolidação, sem repetir a leitura de todos os lotes.
+9. Auditar riscos e hipóteses em grupos de até três, com até 15 linhas adjacentes por lado de cada referência. Uma decisão é exigida para cada ID; UNSUPPORTED ou INCONCLUSIVE removem a observação. Em seguida, consolidar o relatório estruturado usando as observações aceitas.
+10. Revisor avalia sustentação e clareza do relatório e a interpretação das observações citadas. Pode devolver IDs a descartar por contradição semântica, como tratar false como ativação de um estado. A aplicação valida os IDs, remove as observações rejeitadas e refaz a consolidação, sem repetir a inspeção dos lotes.
 11. Persistir relatório final ou resultado parcial em caso de falha.
 
 ## Evidência não é prova de defeito
 
-Uma citação textual válida apenas confirma que o trecho existe no arquivo e nas linhas informadas. Ela não confirma automaticamente a interpretação do modelo. Cada observação distingue ponto forte, observação, risco e hipótese; riscos não recebem o rótulo de defeito confirmado por execução.
+Uma citação textual válida apenas confirma que o trecho existe no arquivo e nas linhas informadas. Ela não confirma automaticamente a interpretação do modelo. Por isso, a revisão também pode descartar uma observação por contradição lógica, mesmo quando sua citação é válida. A presença de IDs rejeitados impede uma aprovação inconsistente e força nova consolidação. Cada observação distingue ponto forte, observação, risco e hipótese; riscos não recebem o rótulo de defeito confirmado por execução.
+
+A auditoria por outro agente é probabilística. Na validação real, inclusive a auditoria focada aprovou uma interpretação equivocada de uma atribuição false. A conferência assistida removeu essa observação antes da entrega e preservou o registro da aprovação incorreta. O sistema automatiza verificações e rastreabilidade; não oferece garantia automática de correção semântica. Consulte [a validação por lotes](BATCH-VALIDATION.md).
 
 Os overviews de lote são notas de navegação não verificadas. A consolidação e revisão são instruídas a usar as observações com referências aceitas para sustentar conclusões.
 

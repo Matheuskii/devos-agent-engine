@@ -41,6 +41,7 @@ class FullAnalysisEngineTest {
         .toList();
   }
 
+  ObservationAuditPort audit = (a, c, t) -> new ReviewDecision(true, "Sem riscos nesta fixture");
   PlanningPort planner =
       (a, o, s, t) ->
           new Plan(
@@ -92,6 +93,7 @@ class FullAnalysisEngineTest {
         inspect,
         synthesis,
         review,
+        audit,
         List.of(tool(ToolId.INVENTORY), tool(ToolId.QUALITY)),
         saved::add,
         memory,
@@ -184,5 +186,90 @@ class FullAnalysisEngineTest {
             .analyze(Path.of("."), "Analyze");
     assertEquals("COMPLETED", r.status());
     assertEquals(2, toolCalls);
+  }
+
+  @Test
+  void semanticRejectionRemovesObservationBeforeResynthesisAndRendering() {
+    inspect =
+        (a, o, b, e, t) -> {
+          inspections++;
+          if (b.index() != 1) return new BatchInsight(b.index(), "Read", List.of(), List.of());
+          var ref = new EvidenceReference("src/main/A.java", 1, 1, "class A {}");
+          var observation =
+              new AnalysisObservation(
+                  "B1-O1",
+                  "Incorrect interpretation",
+                  "OBSERVATION",
+                  "INFO",
+                  "Claim",
+                  "Impact",
+                  "Action",
+                  List.of(ref));
+          return new BatchInsight(1, "Read", List.of(observation), List.of());
+        };
+    var r =
+        engine(
+                (a, o, c, i, e, report, t) ->
+                    ++reviewCalls == 1
+                        ? new ReviewDecision(
+                            true, "Description contradicts the code", Set.of("B1-O1"))
+                        : new ReviewDecision(true, "Corrected"))
+            .analyze(Path.of("."), "Analyze");
+    assertEquals("COMPLETED", r.status());
+    assertEquals(1, r.revisions());
+    assertTrue(
+        r.batches().stream()
+            .flatMap(b -> b.observations().stream())
+            .noneMatch(o -> o.id().equals("B1-O1")));
+    assertTrue(r.notices().stream().anyMatch(n -> n.contains("B1-O1")));
+    assertEquals(r.coverage().plannedBatches(), inspections);
+  }
+
+  @Test
+  void semanticReviewerCannotSilentlyRemoveAnUnknownId() {
+    var r =
+        engine(
+                (a, o, c, i, e, report, t) ->
+                    new ReviewDecision(false, "Remove", Set.of("B999-O99")))
+            .analyze(Path.of("."), "Analyze");
+    assertEquals("FAILED", r.status());
+    assertTrue(r.review().contains("inexistente"));
+  }
+
+  @Test
+  void riskyInterpretationsReceiveFocusedAuditBeforeConsolidation() {
+    var audited = new java.util.concurrent.atomic.AtomicInteger();
+    inspect =
+        (a, o, b, e, t) -> {
+          inspections++;
+          if (b.index() != 1) return new BatchInsight(b.index(), "Read", List.of(), List.of());
+          var observation =
+              new AnalysisObservation(
+                  "B1-O1",
+                  "Flag risk",
+                  "RISK",
+                  "MEDIUM",
+                  "Claim",
+                  "Impact",
+                  "Action",
+                  List.of(new EvidenceReference("src/main/A.java", 2, 2, "class A {}")));
+          return new BatchInsight(1, "Read", List.of(observation), List.of());
+        };
+    audit =
+        (a, c, t) -> {
+          audited.incrementAndGet();
+          assertEquals("B1-O1", c.getFirst().observation().id());
+          return new ReviewDecision(false, "Unsupported interpretation", Set.of("B1-O1"));
+        };
+    var result =
+        engine((a, o, c, i, e, report, t) -> new ReviewDecision(true, "Supported"))
+            .analyze(Path.of("."), "Analyze");
+    assertEquals("COMPLETED", result.status());
+    assertEquals(1, audited.get());
+    assertTrue(
+        result.batches().stream()
+            .flatMap(b -> b.observations().stream())
+            .noneMatch(o -> o.id().equals("B1-O1")));
+    assertEquals(result.coverage().plannedBatches() + 4, result.modelCalls());
   }
 }

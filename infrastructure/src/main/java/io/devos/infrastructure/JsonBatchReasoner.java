@@ -171,7 +171,10 @@ public final class JsonBatchReasoner
                 + " de defeitos comprovados; não transforme TODO em bug nem quantidade de testes em"
                 + " cobertura. Reconheça arquivos de dados reduzidos e qualquer coleta parcial. Não"
                 + " afirme execução de compilação ou testes. Não invente achados para preencher"
-                + " seções; quando não houver evidência, explique a limitação.",
+                + " seções; quando não houver evidência, explique a limitação. Prefira descrições"
+                + " factuais a adjetivos como robusto, maduro, exaustivo ou excepcional. Testes"
+                + " estáticos declaram cenários; sua existência não garante que os resultados foram"
+                + " obtidos.",
             timeout);
     return new AnalysisReport(
         text(node.path("executiveSummary")),
@@ -200,14 +203,22 @@ public final class JsonBatchReasoner
                 objective,
                 "coverage",
                 coverage,
-                "verifiedBatchInsights",
+                "textVerifiedBatchInsights",
                 insights,
                 "toolEvidence",
                 evidence,
                 "candidateReport",
                 report),
-            "{approved:boolean,feedback:string}. Avalie a precisão e clareza do RELATÓRIO, não se o"
-                + " código do repositório é perfeito. Aprove se as conclusões respeitam as"
+            "{approved:boolean,feedback:string,rejectedObservationIds:[string]}. Examine"
+                + " criticamente TODAS as observações e suas citações, além do relatório. Trecho"
+                + " existente não garante interpretação correta. Confira negações, valores"
+                + " true/false e condições de if/catch: atribuir false não significa ativar um"
+                + " estado. Se uma observação descrever o oposto do código, inventar ausência de"
+                + " funcionalidade ou extrapolar a evidência, retorne seu ID em"
+                + " rejectedObservationIds e approved=false. Use lista vazia quando nenhuma"
+                + " observação precisar ser descartada. Não force encontrar defeitos. Feedback"
+                + " objetivo, sem elogios genéricos. Avalie a precisão e clareza do RELATÓRIO, não"
+                + " se o código do repositório é perfeito. Aprove se as conclusões respeitam as"
                 + " evidências verificadas, explicam impacto e próximos passos e informam o escopo"
                 + " real. Reprove apenas afirmações concretas sem apoio, referências inventadas,"
                 + " confusão entre risco e defeito ou síntese genérica sem explicar o projeto. Não"
@@ -218,7 +229,12 @@ public final class JsonBatchReasoner
             timeout);
     if (!node.path("approved").isBoolean())
       throw new IllegalArgumentException("Parecer deve conter booleano approved");
-    return new ReviewDecision(node.path("approved").booleanValue(), text(node.path("feedback")));
+    var rejected = new HashSet<String>();
+    if (!node.path("rejectedObservationIds").isArray())
+      throw new IllegalArgumentException("Revisor deve informar rejectedObservationIds como lista");
+    for (var id : node.path("rejectedObservationIds")) rejected.add(text(id));
+    return new ReviewDecision(
+        node.path("approved").booleanValue(), text(node.path("feedback")), rejected);
   }
 
   private static String text(JsonNode n) {

@@ -66,4 +66,22 @@ class BatchReasonerTest {
             reasoner.synthesize(
                 agent, "A", coverage, List.of(), List.of(), "", "", Duration.ofSeconds(1)));
   }
+
+  @Test
+  void reviewerCanRejectTextuallyValidButSemanticallyIncorrectObservations() {
+    var reasoner =
+        new JsonBatchReasoner(
+            (system, input, timeout) -> {
+              assertTrue(system.contains("true/false"));
+              return "{\"approved\":true,\"feedback\":\"false does not enable the"
+                         + " state\",\"rejectedObservationIds\":[\"B1-O1\"]}";
+            });
+    var c = new RepositoryCoverage(1, 1, 0, 10, 10, 1, 1, true, List.of(), List.of("A.java"));
+    var report =
+        new AnalysisReport("Summary", "Architecture", "Tests", List.of(), List.of(), List.of());
+    var decision =
+        reasoner.reviewReport(agent, "A", c, List.of(), List.of(), report, Duration.ofSeconds(1));
+    assertFalse(decision.approved());
+    assertEquals(Set.of("B1-O1"), decision.rejectedObservationIds());
+  }
 }

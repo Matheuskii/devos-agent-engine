@@ -45,7 +45,7 @@ java -jar cli/target/cli-0.1.0.jar analyze /caminho/do/repositorio \
 9. Limitações, dados reduzidos e avisos.
 10. Parecer do revisor e rastreabilidade.
 
-Cada referência de observação é comparada com o texto do lote e o intervalo de linhas. Referências inexistentes ou sem correspondência são descartadas e registradas. Isso verifica a evidência textual; não prova que toda interpretação do modelo é correta. Riscos e hipóteses não são apresentados como bugs confirmados por execução.
+Cada referência de observação é comparada com o texto do lote e o intervalo de linhas. Referências inexistentes ou sem correspondência são descartadas e registradas. Além dessa conferência, riscos e hipóteses passam por auditoria focada em grupos de até três observações, com código adjacente. O revisor pode rejeitar IDs cujo raciocínio contradiz o trecho, inclusive negações e valores booleanos; avaliações inconclusivas não são promovidas a achados sustentados. A aplicação remove essas observações e reconsolida o relatório sem repetir a inspeção dos lotes. As duas camadas reduzem erros, mas não provam que toda interpretação do modelo é correta. Riscos e hipóteses não são apresentados como bugs confirmados por execução.
 
 ## Usar Gemini ou Groq
 
@@ -121,7 +121,7 @@ Veja [arquitetura](docs/ARCHITECTURE.md), [decisões](docs/DECISIONS.md) e [prot
 - `.devosignore` usa globs Java relativos à raiz; não implementa toda a sintaxe de `.gitignore` e não lê `.gitignore` automaticamente.
 - A coleta mantém limites de profundidade e número de entradas; exclusões e truncamentos não equivalem a ausência de código.
 - O prazo total é cooperativo entre operações; HTTP limita a resposta completa a até 40 segundos por requisição.
-- O modo full prevê até 64 lotes, 80 chamadas, duas revisões adicionais e 15 minutos por padrão. O orçamento inclui planejamento, lotes, síntese e revisão; embeddings são chamadas adicionais não incluídas nessa métrica.
+- O modo full prevê até 64 lotes, 80 chamadas, duas revisões adicionais e 15 minutos por padrão. O orçamento inclui planejamento, lotes, auditoria dos riscos, síntese e revisão; embeddings são chamadas adicionais não incluídas nessa métrica.
 - A aprovação não prova ausência de defeitos nem substitui revisão humana ou uma ferramenta de análise estática especializada.
 
 ## Testes e CI
@@ -134,7 +134,7 @@ A suíte verifica invariantes, permissões, estados, ciclos, orçamento, falhas,
 
 O CI testa o projeto e executa a demonstração offline. JAR, XMLs de teste e demonstração são disponibilizados como artefatos do GitHub Actions.
 
-Registros históricos: [primeira validação](docs/VALIDATION.md) e [primeira validação com APIs reais](docs/CODESPACE-VALIDATION.md).
+Registros: [validação por lotes e limites da revisão semântica](docs/BATCH-VALIDATION.md), [primeira validação](docs/VALIDATION.md) e [primeira validação com APIs reais](docs/CODESPACE-VALIDATION.md).
 
 ## Referências técnicas
 

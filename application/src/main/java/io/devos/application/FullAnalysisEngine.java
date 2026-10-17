@@ -11,6 +11,7 @@ public final class FullAnalysisEngine {
   private final BatchInspectionPort inspector;
   private final ReportSynthesisPort writer;
   private final ReportReviewPort reviewer;
+  private final ObservationAuditPort auditor;
   private final RunRepository runs;
   private final MemoryPort memory;
   private final Map<Role, Agent> team;
@@ -25,6 +26,7 @@ public final class FullAnalysisEngine {
       BatchInspectionPort inspector,
       ReportSynthesisPort writer,
       ReportReviewPort reviewer,
+      ObservationAuditPort auditor,
       List<ToolPort> tools,
       RunRepository runs,
       MemoryPort memory,
@@ -37,6 +39,7 @@ public final class FullAnalysisEngine {
     this.inspector = inspector;
     this.writer = writer;
     this.reviewer = reviewer;
+    this.auditor = auditor;
     this.runs = runs;
     this.memory = memory;
     this.settings = settings;
@@ -187,6 +190,39 @@ public final class FullAnalysisEngine {
                 partition,
                 insights));
       }
+      var riskCandidates =
+          insights.stream()
+              .flatMap(b -> b.observations().stream())
+              .filter(o -> o.kind().equals("RISK") || o.kind().equals("HYPOTHESIS"))
+              .toList();
+      for (int offset = 0; offset < riskCandidates.size(); offset += 3) {
+        active = Role.REVIEWER;
+        int end = Math.min(offset + 3, riskCandidates.size());
+        var contexts = new ArrayList<ObservationAuditContext>();
+        for (var observation : riskCandidates.subList(offset, end))
+          contexts.add(ObservationAuditContext.from(observation, snapshot));
+        progress.update(
+            "Auditando a interpretação dos riscos "
+                + (offset + 1)
+                + " a "
+                + end
+                + " de "
+                + riskCandidates.size()
+                + "...");
+        var audit = auditor.audit(team.get(Role.REVIEWER), contexts, budget.reserveModelCall());
+        budget.remaining();
+        events.add(event(Role.REVIEWER, "observation-audit-" + (offset / 3 + 1), audit.feedback()));
+        if (!audit.rejectedObservationIds().isEmpty()) {
+          var corrected = new ObservationReview().apply(List.copyOf(insights), audit);
+          insights.clear();
+          insights.addAll(corrected);
+          notices.add(
+              "Auditoria focada descartou "
+                  + audit.rejectedObservationIds()
+                  + ": "
+                  + audit.feedback());
+        }
+      }
       while (true) {
         progress.update("Consolidando relatório detalhado...");
         active = Role.EXECUTOR;
@@ -216,6 +252,16 @@ public final class FullAnalysisEngine {
                 budget.reserveModelCall());
         budget.remaining();
         feedback = review.feedback();
+        if (!review.rejectedObservationIds().isEmpty()) {
+          var corrected = new ObservationReview().apply(List.copyOf(insights), review);
+          insights.clear();
+          insights.addAll(corrected);
+          notices.add(
+              "Revisão semântica descartou observações: "
+                  + review.rejectedObservationIds()
+                  + ". Motivo: "
+                  + review.feedback());
+        }
         events.add(
             event(
                 Role.REVIEWER,
