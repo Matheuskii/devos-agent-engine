@@ -126,7 +126,8 @@ public final class LocalRepository implements RepositoryPort {
               if (name.startsWith(".")
                   || name.contains("secret")
                   || name.contains("credential")
-                  || name.contains("lock")
+                  || Set.of("package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml")
+                      .contains(name)
                   || name.endsWith(".min.js")) return FileVisitResult.CONTINUE;
               int dot = name.lastIndexOf('.');
               String ext = dot < 0 ? "" : name.substring(dot + 1);

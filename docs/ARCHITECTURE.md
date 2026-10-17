@@ -1,4 +1,6 @@
-# Arquitetura do primeiro incremento
+# Arquitetura e evolução
+
+O fluxo completo por lotes está documentado em [BATCH-ANALYSIS.md](BATCH-ANALYSIS.md). A descrição abaixo registra a base do primeiro incremento e o modo sample, preservado para comparação.
 
 ## Conceito central
 

@@ -1,65 +1,93 @@
 # DevOS Agent Engine
 
-Engine de agentes para analisar repositórios locais com **Java 21**, arquitetura em camadas e três papéis: planejador, executor e revisor.
+Engine multiagente em **Java 21** para analisar repositórios locais, com planejador, executor e revisor, Clean Architecture e adaptadores Gemini/Groq/Qdrant.
 
-**Versão 0.1.0 — primeiro incremento funcional do TCC.** A autonomia é delimitada: o planejador escolhe e ordena ferramentas de leitura previamente autorizadas; o executor coleta evidências e sintetiza; o revisor pode aprovar ou solicitar uma nova síntese. A engine controla dependências, permissões, limites e estados. Nenhum comando do repositório é executado.
+O modo padrão agora percorre todos os arquivos elegíveis por **lotes**, produz observações com evidências verificadas e consolida um relatório explicativo. O modo offline demonstra o fluxo sem inferência de IA.
 
-## Executar em cinco minutos
+## Começar
 
-Requisitos: **JDK 21+ e Maven 3.9+**. No Codespaces, abra este projeto usando a configuração de `.devcontainer` e aguarde a construção do contêiner. O ambiente instala Java e Maven. Em outra máquina, instale-os e confira `java -version` e `mvn -version`.
-
-Se você baixou o pacote desta versão, ele também inclui um JAR pronto em `dist/devos-agent-engine-0.1.0.jar`. Com Java 21, execute sem Maven: `java -jar dist/devos-agent-engine-0.1.0.jar analyze examples/sample-repository`. Para desenvolver e recompilar, siga abaixo.
-
-Na raiz do projeto:
+Requisitos: JDK 21+ e Maven 3.9+. A configuração de `.devcontainer` instala Java e Maven no Codespaces.
 
 ```bash
 mvn -B -ntp verify
-java -jar cli/target/cli-0.1.0.jar analyze examples/sample-repository
+java -jar cli/target/cli-0.1.0.jar analyze examples/sample-repository --delay-ms 0
 ```
 
-O segundo comando funciona **sem internet, chave ou Qdrant** depois do build. É um modo determinístico para demonstrar o fluxo; ele não realiza inferência de IA.
+O primeiro build baixa dependências Maven. Depois, o exemplo offline não exige chave, internet para inferência ou Qdrant.
 
-Analisar um repositório já clonado:
+## Onde fica a análise?
+
+**Abra `devos-output/latest.md` no VS Code e use Ctrl+Shift+V para visualizar.**
+
+- `latest.md`: relatório mais recente ou checkpoint da execução em andamento.
+- `latest.json`: registro detalhado, inventário de caminhos, lotes, evidências, cobertura e eventos.
+- `<UUID>.md` e `<UUID>.json`: histórico por execução.
+
+O estado EXECUTING ou FAILED não significa análise final aprovada; o arquivo informa quantos lotes terminaram. A persistência por lote preserva o trabalho já concluído se ocorrer falha posterior. Ainda não existe retomada automática a partir desses checkpoints.
+
+Para escolher outra pasta:
 
 ```bash
 java -jar cli/target/cli-0.1.0.jar analyze /caminho/do/repositorio \
-  --objective "Analisar estrutura, documentação e sinais de qualidade" \
-  --output .devos/runs
+  --output devos-output/meu-repositorio
 ```
 
-No Windows, use o caminho local entre aspas e execute o comando em uma linha. Ajuda: `java -jar cli/target/cli-0.1.0.jar --help`.
+## O que o relatório explica
 
-Saída: um relatório Markdown e um registro JSON por execução, identificados por UUID. O JSON registra estado, achados, papéis, revisões, tempo e chamadas de raciocínio. Código de saída: `0` aprovado; `1` análise rejeitada ou falhou; `2` erro de configuração/CLI ou persistência.
+1. Escopo, arquivos coletados, testes identificados e cobertura dos lotes.
+2. Resumo executivo e diagnóstico sustentado por evidências.
+3. Arquitetura: componentes, responsabilidades e relações observadas.
+4. Testes e confiabilidade, sem confundir leitura estática com testes executados.
+5. Pontos fortes.
+6. Riscos e hipóteses priorizados.
+7. Observações com explicação, impacto, próximo passo, arquivo, linha e trecho literal.
+8. Plano de ação em ordem sugerida.
+9. Limitações, dados reduzidos e avisos.
+10. Parecer do revisor e rastreabilidade.
 
-## Usar IA real
+Cada referência de observação é comparada com o texto do lote e o intervalo de linhas. Referências inexistentes ou sem correspondência são descartadas e registradas. Isso verifica a evidência textual; não prova que toda interpretação do modelo é correta. Riscos e hipóteses não são apresentados como bugs confirmados por execução.
 
-Escolha **um modelo atualmente disponível na sua conta e compatível com JSON**. O nome do modelo é obrigatório para evitar depender de modelos aposentados. As cotas gratuitas e os modelos variam por provedor; a engine não habilita cobrança nem troca automaticamente para planos pagos.
+## Usar Gemini ou Groq
 
-Exemplo Bash com Groq:
-
-```bash
-export GROQ_API_KEY="sua-chave"
-export DEVOS_MODEL="identificador-do-modelo-disponivel-na-sua-conta"
-java -jar cli/target/cli-0.1.0.jar analyze /caminho/do/repositorio --provider groq
-```
-
-Exemplo Bash com Gemini:
+Escolha um modelo disponível na sua conta e compatível com JSON. Defina as variáveis no terminal:
 
 ```bash
 export GEMINI_API_KEY="sua-chave"
-export DEVOS_MODEL="identificador-do-modelo-disponivel-na-sua-conta"
+export DEVOS_MODEL="modelo-disponivel-na-sua-conta"
 java -jar cli/target/cli-0.1.0.jar analyze /caminho/do/repositorio --provider gemini
 ```
 
-PowerShell: `$env:GROQ_API_KEY="sua-chave"` e `$env:DEVOS_MODEL="modelo"`.
+Para Groq, use `GROQ_API_KEY` e `--provider groq`. Modelos validados anteriormente: `gemini-3.5-flash-lite` e `openai/gpt-oss-20b`; disponibilidade e cotas podem mudar.
 
-`.env.example` documenta as variáveis, mas arquivos `.env` **não são carregados automaticamente**. Nunca comite chaves. Os adaptadores REST usam Java HttpClient e Jackson; Spring Boot e LangChain4j não são necessários para este incremento.
+**A CLI Java não carrega `.env` automaticamente.** O arquivo `.env.example` documenta as configurações; exporte as variáveis no seu shell. No PowerShell: `$env:DEVOS_MODEL="modelo"`.
 
-Ao escolher um provedor online, a amostra de código elegível será enviada à API para síntese. O leitor omite arquivos de ambiente, arquivos com nomes de credenciais/segredos e chaves privadas; mascara padrões comuns de tokens e atribuições de credenciais. Isso é uma proteção heurística, sem garantia de encontrar todo segredo. Defina exclusões adicionais em `.devosignore` antes da análise de conteúdo privado.
+Ao escolher um provedor online, o conteúdo preparado dos arquivos elegíveis será enviado à API. O leitor omite arquivos de ambiente, credenciais e chaves privadas identificáveis e mascara padrões comuns de segredos. O mascaramento é heurístico. Use `.devosignore` para excluir conteúdo adicional antes da análise.
 
-## Memória vetorial local com Qdrant
+Não há troca automática para plano pago, retries ocultos ou fallback silencioso para respostas simuladas. Uma falha externa gera um registro FAILED com a cobertura já concluída.
 
-Opcional. Exige Docker/Compose **na sua máquina** e uma chave Gemini para gerar embeddings, inclusive quando o raciocínio usar Groq. O Qdrant armazena e consulta vetores; a geração semântica dos embeddings é feita pela API Gemini. Portanto, esta configuração não é totalmente offline.
+## Leitura por lotes
+
+O padrão `--scope full` lê todos os arquivos elegíveis dentro dos limites configurados: até 5.000 arquivos, 24 MB no total e 8 MB por arquivo. O conteúdo de código e testes é dividido em lotes de até 64.000 caracteres, preservando os números de linha e sem cortar silenciosamente os arquivos nos 120 KB da versão inicial.
+
+Arquivos SQL acima de 250.000 caracteres recebem uma **representação estrutural**, com contagem heurística de comandos e amostra inicial. O arquivo é lido integralmente, mas seus dados individuais não recebem revisão semântica integral pela IA. Essa redução é identificada na cobertura e nas limitações, e não pode sustentar uma observação com linhas originais. Isso evita que milhões de caracteres de dados gerados consumam o contexto destinado ao código.
+
+```bash
+java -jar cli/target/cli-0.1.0.jar analyze /caminho/do/repositorio \
+  --provider gemini --scope full \
+  --batch-chars 64000 --max-batches 64 --max-calls 80 \
+  --delay-ms 2000 --timeout-seconds 900 \
+  --output devos-output/meu-repositorio
+```
+
+O número de lotes e o orçamento mínimo são conferidos antes de chamar a IA. Se excederem os limites, o programa informa o ajuste necessário. O intervalo entre lotes ajuda a controlar o ritmo, mas não garante conformidade com todas as cotas do provedor.
+
+Para a amostragem curta original, use `--scope sample`: até 200 arquivos, 120 KB totais e 12 KB por arquivo, com orçamento padrão de sete chamadas e três minutos. O formato desse modo permanece compacto.
+
+Mais detalhes: [contratos, lotes, evidências e cobertura](docs/BATCH-ANALYSIS.md).
+
+## Memória vetorial opcional
+
+Qdrant armazena sínteses aprovadas e recupera contexto do mesmo repositório. Embeddings são gerados pela API Gemini, inclusive quando o raciocínio usa Groq; portanto, essa configuração não é completamente offline.
 
 ```bash
 docker compose up -d qdrant
@@ -67,61 +95,50 @@ export GEMINI_API_KEY="sua-chave"
 java -jar cli/target/cli-0.1.0.jar analyze /caminho/do/repositorio --memory qdrant
 ```
 
-O exemplo usa o raciocínio offline com memória online. Para ativar ambos, acrescente `--provider gemini` ou `--provider groq` e configure `DEVOS_MODEL`.
-
-- Servidor vinculado a `127.0.0.1:6333`, com volume persistente.
-- Embeddings normalizados com 768 dimensões; modelo configurável em `DEVOS_EMBEDDING_MODEL`.
-- Coleção separada por modelo e dimensão; incompatibilidade não mistura vetores.
-- Recupera até três sínteses aprovadas, filtradas pelo identificador do repositório.
-- Identificador do repositório: SHA-256 do caminho real local; mover o diretório cria outro contexto de memória.
-- Falhas na memória geram um aviso e preservam a análise; resultados rejeitados não entram na memória.
-- O contexto recuperado é histórico não confiável; não substitui evidências atuais.
+A memória padrão é `none`. O Qdrant do Compose usa loopback, volume persistente e coleções separadas por modelo e dimensão. A implementação valida dimensões e filtra resultados pelo identificador do repositório. Falhas de memória geram aviso e preservam o relatório. O Qdrant não substitui o armazenamento operacional das execuções.
 
 ## Arquitetura
 
 | Módulo | Responsabilidade | Dependência de produção |
 |---|---|---|
-| `domain` | Agent, Task, Plan, PlanStep, regras e objetos de valor | Apenas JDK |
-| `application` | Caso de uso, orçamento de execução e Ports | domain |
-| `infrastructure` | Arquivos, ferramentas, APIs, JSON e Qdrant | application e dependências transitivas |
-| `cli` | Argumentos, configuração e composição | infrastructure e dependências transitivas |
+| `domain` | Agent, Task, Plan, regras, observações e referências de evidência | Apenas JDK |
+| `application` | Casos de uso, lotes, cobertura, orçamento e Ports | domain |
+| `infrastructure` | Leitor, ferramentas, APIs, JSON, Markdown e Qdrant | application |
+| `cli` | Configuração, composição, argumentos e progresso | infrastructure |
 
-A direção de dependências é fiscalizada pelo build Maven: o domínio não possui dependências de produção externas nem acesso aos módulos externos. Os testes usam JUnit. Interfaces pequenas separam planejamento, síntese, revisão, ferramentas, repositório e memória.
+O caso de uso completo usa interfaces separadas para inspecionar um lote, consolidar o relatório e revisar seu conteúdo. O domínio não depende de Jackson, Spring, provedores de IA ou Qdrant. Spring Boot e LangChain4j podem ser introduzidos em adaptadores futuros, sem entrar nas entidades.
 
-Padrões utilizados: **Ports and Adapters**, **Strategy** para implementação de raciocínio e memória, **Registry** para ferramentas e **Repository** para registros. A composição explícita fica na CLI. A máquina de estados de Task valida transições sem depender de frameworks. Não há contêiner de injeção obrigatório.
+Padrões: Ports and Adapters, Strategy, Registry e Repository; máquina de estados para Task e composição explícita na CLI. A execução dos lotes é sequencial para limitar consumo e facilitar rastreabilidade. Três papéis não significam três processos distribuídos ou revisores estatisticamente independentes.
 
-Detalhes e justificativas: [arquitetura](docs/ARCHITECTURE.md), [decisões](docs/DECISIONS.md) e [avaliação do TCC](docs/TCC-EVALUATION.md).
+Veja [arquitetura](docs/ARCHITECTURE.md), [decisões](docs/DECISIONS.md) e [protocolo acadêmico](docs/TCC-EVALUATION.md).
 
-## Escopo e limites reais
+## Limites reais
 
-- Entrada local: clone o repositório por conta própria e informe o caminho. Não há clonagem ou autenticação GitHub automática.
-- Ferramentas deste incremento: inventário de arquivos e verificações heurísticas de README, testes observados e marcadores TODO/FIXME.
-- A engine não compila nem executa os testes do repositório analisado, não altera arquivos e não comprova vulnerabilidades.
-- Amostragem: até 200 arquivos, 120 KB no total, 12 KB por arquivo, profundidade 20 e até 10 mil entradas visitadas. Truncamentos e falhas de leitura são informados.
-- Diretórios de dependências, builds, `.git`, `.tools`, `.devos` e `devos-output` são ignorados. Links simbólicos não são seguidos durante a coleta.
-- `.devosignore`: um glob Java por linha, relativo à raiz; linhas iniciadas por `#` são comentários. Exemplo: `private` para omitir o diretório, `**/*.sql` para omitir caminhos correspondentes. Não implementa a sintaxe completa de `.gitignore` e não lê `.gitignore` automaticamente.
-- Padrões: no máximo 6 etapas, 7 chamadas de raciocínio e 2 revisões adicionais. Modelo: temperatura 0,1 e até 2500 tokens de saída. HTTP: timeout de até 40 segundos por requisição. Sem retries ocultos nem fallback silencioso para respostas simuladas.
-- O prazo total de três minutos é cooperativo entre operações; não é um mecanismo de interrupção forçada de leitura em disco. A memória opcional pode fazer duas chamadas adicionais de embedding; elas não entram na métrica de chamadas de raciocínio.
-- Estados finais são persistidos; retomada após queda no meio da execução e coordenação distribuída ficam para módulos posteriores.
-- Aprovação do relatório não significa ausência de defeitos. No modo online, a revisão entre agentes é probabilística; os três papéis podem usar o mesmo modelo e compartilhar vieses.
+- Entrada por diretório local já clonado; sem clonagem GitHub automática.
+- Análise estática: não compila, não executa testes e não altera o código analisado.
+- Tipos elegíveis incluem Java, Kotlin, Python, JavaScript/TypeScript, Dart, C#, Go, Rust, documentos de texto e configurações selecionadas.
+- Dependências, builds, `.git`, `.vscode`, `.idea`, `.devos` e `devos-output` são ignorados. Links simbólicos não são seguidos na coleta.
+- `.devosignore` usa globs Java relativos à raiz; não implementa toda a sintaxe de `.gitignore` e não lê `.gitignore` automaticamente.
+- A coleta mantém limites de profundidade e número de entradas; exclusões e truncamentos não equivalem a ausência de código.
+- O prazo total é cooperativo entre operações; HTTP limita a resposta completa a até 40 segundos por requisição.
+- O modo full prevê até 64 lotes, 80 chamadas, duas revisões adicionais e 15 minutos por padrão. O orçamento inclui planejamento, lotes, síntese e revisão; embeddings são chamadas adicionais não incluídas nessa métrica.
+- A aprovação não prova ausência de defeitos nem substitui revisão humana ou uma ferramenta de análise estática especializada.
 
 ## Testes e CI
 
 ```bash
-mvn -B -ntp verify
+mvn -B -ntp clean verify
 ```
 
-A suíte testa invariantes, ciclos, transições, orçamento, revisão, falhas, leitura limitada, exclusões, mascaramento, CLI e contratos HTTP Gemini/Groq/Qdrant com servidores locais controlados. Não exige chaves, internet para inferência nem um Qdrant real. O primeiro build precisa baixar as dependências Maven.
+A suíte verifica invariantes, permissões, estados, ciclos, orçamento, falhas, leitura e mascaramento, particionamento sem perda, coordenadas de evidências, rejeição de referências inventadas, limites antes de chamadas externas, checkpoints parciais, revisão sem repetir os lotes, relatório explicativo, aliases latest e contratos HTTP.
 
-O workflow em `.github/workflows/ci.yml` repete o build, executa a demonstração e publica JAR, testes e relatório de exemplo como artefatos nos pushes e pull requests do GitHub.
+O CI testa o projeto e executa a demonstração offline. JAR, XMLs de teste e demonstração são disponibilizados como artefatos do GitHub Actions.
 
-Veja a [validação inicial](docs/VALIDATION.md) e a [validação posterior no Codespace](docs/CODESPACE-VALIDATION.md), que inclui 49 testes, Gemini, Groq e Qdrant com embeddings reais.
+Registros históricos: [primeira validação](docs/VALIDATION.md) e [primeira validação com APIs reais](docs/CODESPACE-VALIDATION.md).
 
 ## Referências técnicas
 
-- [Gemini — geração de conteúdo](https://ai.google.dev/api/generate-content)
+- [Gemini — geração](https://ai.google.dev/api/generate-content)
 - [Gemini — embeddings](https://ai.google.dev/api/embeddings)
 - [Groq — API](https://console.groq.com/docs/api-reference)
-- [Groq — limites](https://console.groq.com/docs/rate-limits)
-- [Gemini — preços e plano gratuito](https://ai.google.dev/gemini-api/docs/pricing)
-- [Qdrant — API REST](https://api.qdrant.tech/)
+- [Qdrant — API](https://api.qdrant.tech/)

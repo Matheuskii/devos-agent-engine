@@ -49,3 +49,14 @@
 **Decisão:** validar respostas JSON, rejeitar ferramenta desconhecida e planos inválidos, limitar chamadas e revisões, definir timeout e não simular sucesso quando a API falha.
 
 **Consequência:** maior previsibilidade, podendo encerrar cedo sob cotas ou respostas inválidas. Retry/backoff e fallback entre provedores serão decisões posteriores, com métricas próprias.
+
+
+## ADR-007 — Coleta ampliada, lotes e evidências verificadas
+
+**Status:** adotada no incremento de análise detalhada.
+
+**Contexto:** a amostra de 120 KB podia ser consumida por dados gerados e deixar classes e testes de fora. A síntese em um único campo produziu relatórios pouco úteis.
+
+**Decisão:** modo full por padrão, contratos separados para inspeção/consolidação/revisão e relatório estruturado. Código e testes são particionados sem perda. SQLs extensos têm representação estrutural com redução declarada. Caminhos, linhas e trechos das observações são verificados antes de usá-las na consolidação.
+
+**Consequência:** mais chamadas e maior latência, com orçamento e ritmo configuráveis. Checkpoints preservam resultados parciais; uma referência textual correta não prova a interpretação do modelo. O modo sample mantém a leitura curta para comparação e demonstrações.

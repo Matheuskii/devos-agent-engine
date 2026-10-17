@@ -17,9 +17,23 @@ public final class ProviderModelClient implements ModelClient {
   private final String apiKey, model;
   private final URI endpoint;
   private final JsonHttp http;
+  private final int outputTokens;
 
   public ProviderModelClient(
       Provider provider, String apiKey, String model, URI endpoint, JsonHttp http) {
+    this(provider, apiKey, model, endpoint, http, 2500);
+  }
+
+  public ProviderModelClient(
+      Provider provider,
+      String apiKey,
+      String model,
+      URI endpoint,
+      JsonHttp http,
+      int outputTokens) {
+    if (outputTokens < 256 || outputTokens > 16000)
+      throw new IllegalArgumentException("Limite de saída inválido");
+    this.outputTokens = outputTokens;
     this.provider = Objects.requireNonNull(provider);
     this.apiKey = Checks.text(apiKey, "API key");
     this.model = Checks.text(model, "Modelo");
@@ -47,7 +61,7 @@ public final class ProviderModelClient implements ModelClient {
                   "temperature",
                   0.1,
                   "max_tokens",
-                  2500,
+                  outputTokens,
                   "response_format",
                   Map.of("type", "json_object")),
               timeout);
@@ -73,7 +87,7 @@ public final class ProviderModelClient implements ModelClient {
                     "temperature",
                     0.1,
                     "maxOutputTokens",
-                    2500,
+                    outputTokens,
                     "responseMimeType",
                     "application/json")),
             timeout);

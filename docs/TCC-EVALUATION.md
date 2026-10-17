@@ -43,3 +43,8 @@ Os registros atuais incluem chamadas de raciocínio, revisões, duração e even
 ## Evidências para a banca
 
 Arquitetura e ADRs, código dos invariantes, testes automatizados, registros JSON, relatórios comparáveis e análise honesta das limitações. Manter chaves e conteúdo privado fora dos anexos públicos.
+
+
+## Avaliar também clareza e fidelidade de cobertura
+
+Na versão por lotes, comparar explicações de arquitetura, evidências verificáveis, impacto e possibilidade de executar as recomendações. Registrar a proporção de observações descartadas por referência inválida e separar cobertura dos arquivos elegíveis de conteúdo integral enviado à IA. Dados reduzidos devem permanecer explícitos em toda comparação. A baseline deve usar entradas e orçamento comparáveis para não atribuir ao MAS uma melhoria causada apenas por maior quantidade de código lido.

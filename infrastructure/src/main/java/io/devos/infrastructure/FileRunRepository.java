@@ -21,7 +21,10 @@ public final class FileRunRepository implements RunRepository {
       atomic(
           record.id() + ".json",
           mapper.writerWithDefaultPrettyPrinter().writeValueAsString(record));
-      atomic(record.id() + ".md", markdown(record));
+      String markdown = markdown(record);
+      atomic(record.id() + ".md", markdown);
+      atomic("latest.json", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(record));
+      atomic("latest.md", markdown);
     } catch (IOException ex) {
       throw new IllegalStateException("Não foi possível persistir o relatório de execução");
     }
@@ -46,6 +49,7 @@ public final class FileRunRepository implements RunRepository {
   }
 
   public static String markdown(RunRecord r) {
+    if (r.coverage() != null) return DetailedReportRenderer.render(r);
     var out = new StringBuilder("# DevOS Agent Engine — análise de repositório\n\n");
     out.append("Execução: ")
         .append(r.id())

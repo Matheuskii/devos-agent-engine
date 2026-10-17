@@ -100,4 +100,13 @@ class LocalRepositoryTest {
         new LocalRepository().read(root).repositoryKey(),
         new LocalRepository().read(other).repositoryKey());
   }
+
+  @Test
+  void clockAndLockJavaSourcesAreNotMistakenForDependencyLockfiles() throws Exception {
+    put("ClockService.java", "class ClockService {}");
+    put("OptimisticLockTest.java", "class OptimisticLockTest {}");
+    put("package-lock.json", "{}");
+    var paths = new LocalRepository().read(root).files().stream().map(SourceFile::path).toList();
+    assertEquals(List.of("ClockService.java", "OptimisticLockTest.java"), paths);
+  }
 }
