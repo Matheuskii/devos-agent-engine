@@ -1,0 +1,67 @@
+{
+  "id" : "4b6304fd-8cc7-47d3-a316-c35eef74e308",
+  "repositoryKey" : "8190e4c0a3a82b73f1e2b27f53813f3e7cb6c1069e76d3dad5cfe78cd4184f7d",
+  "objective" : "Analisar estrutura, documentação e sinais de qualidade do repositório",
+  "status" : "COMPLETED",
+  "mode" : "offline",
+  "startedAt" : "2026-10-17T01:02:44.095032791Z",
+  "elapsedMillis" : 33,
+  "modelCalls" : 3,
+  "revisions" : 0,
+  "summary" : "Modo local determinístico, sem inferência de IA. Objetivo: Analisar estrutura, documentação e sinais de qualidade do repositório. Arquivos elegíveis na amostra: 2; extensões: {java=1, xml=1}; amostra completa nos limites configurados: true Verificação heurística: 3 observações; não equivale a compilação, teste ou auditoria completa.",
+  "findings" : [ {
+    "rule" : "README_NOT_OBSERVED",
+    "severity" : "LOW",
+    "path" : ".",
+    "line" : 0,
+    "evidence" : "README.md não encontrado na amostra elegível.",
+    "recommendation" : "Verificar a documentação de instalação, uso e testes."
+  }, {
+    "rule" : "TESTS_NOT_OBSERVED",
+    "severity" : "MEDIUM",
+    "path" : ".",
+    "line" : 0,
+    "evidence" : "Arquivos de teste não encontrados na amostra elegível.",
+    "recommendation" : "Confirmar a existência de testes e priorizar regras críticas."
+  }, {
+    "rule" : "PENDING_MARKER",
+    "severity" : "INFO",
+    "path" : "src/Main.java",
+    "line" : 3,
+    "evidence" : "// TODO documentar o fluxo de entrada",
+    "recommendation" : "Revisar o marcador no contexto; ele não comprova um defeito."
+  } ],
+  "events" : [ {
+    "agentId" : "0273b494-d66a-3726-b29c-3817b9e194e3",
+    "role" : "PLANNER",
+    "operation" : "plan",
+    "status" : "SUCCEEDED",
+    "detail" : "2 etapas validadas"
+  }, {
+    "agentId" : "b1925939-f66c-3e46-a5aa-db18cabf1cea",
+    "role" : "EXECUTOR",
+    "operation" : "inventory",
+    "status" : "SUCCEEDED",
+    "detail" : "Arquivos elegíveis na amostra: 2; extensões: {java=1, xml=1}; amostra completa nos limites configurados: true"
+  }, {
+    "agentId" : "b1925939-f66c-3e46-a5aa-db18cabf1cea",
+    "role" : "EXECUTOR",
+    "operation" : "quality",
+    "status" : "SUCCEEDED",
+    "detail" : "Verificação heurística: 3 observações; não equivale a compilação, teste ou auditoria completa."
+  }, {
+    "agentId" : "b1925939-f66c-3e46-a5aa-db18cabf1cea",
+    "role" : "EXECUTOR",
+    "operation" : "synthesis",
+    "status" : "SUCCEEDED",
+    "detail" : "Revisão 0"
+  }, {
+    "agentId" : "7ba917e4-e515-3c8a-9ed6-eda08a6ec572",
+    "role" : "REVIEWER",
+    "operation" : "review",
+    "status" : "SUCCEEDED",
+    "detail" : "APPROVED: Critérios estruturais atendidos: inventário, verificação e síntese presentes. Revisão local não avalia qualidade semântica."
+  } ],
+  "notices" : [ ],
+  "review" : "Critérios estruturais atendidos: inventário, verificação e síntese presentes. Revisão local não avalia qualidade semântica."
+}

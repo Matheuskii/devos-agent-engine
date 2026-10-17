@@ -1,0 +1,30 @@
+name: Java CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Testar e empacotar
+        run: mvn -B -ntp verify
+      - name: Análise demonstrável sem chaves
+        run: java -jar cli/target/cli-0.1.0.jar analyze examples/sample-repository --output .devos/demo
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: devos-engine-build-and-evidence
+          path: |
+            cli/target/cli-0.1.0.jar
+            **/target/surefire-reports/*.xml
+            .devos/demo/*
+          include-hidden-files: true

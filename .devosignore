@@ -1,0 +1,4 @@
+# Globs relativos à raiz; sintaxe Java glob, não gitignore.
+private
+**/*.pem
+**/*.key

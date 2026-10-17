@@ -1,0 +1,12 @@
+**/target/
+.env
+.env.*
+!.env.example
+.devos/
+devos-output/
+.idea/
+*.iml
+.DS_Store
+
+# Binários são gerados pelo Maven/CI e distribuídos como artefatos.
+dist/
